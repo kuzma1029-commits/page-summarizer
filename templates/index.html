@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Краткое резюме страницы</title>
+<style>
+  :root {
+    --bg1: #0f172a;
+    --bg2: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --error: #f87171;
+    --card: rgba(30, 41, 59, 0.85);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: var(--text);
+    background: linear-gradient(135deg, var(--bg1) 0%, #1a1033 50%, var(--bg2) 100%);
+    background-size: 200% 200%;
+    animation: gradient 14s ease infinite;
+  }
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--card);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 20px;
+    padding: 40px 36px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 8px;
+  }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  form { display: flex; gap: 10px; flex-wrap: wrap; }
+  input[type="url"] {
+    flex: 1 1 300px;
+    padding: 13px 16px;
+    font-size: 15px;
+    color: var(--text);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  input[type="url"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  }
+  button {
+    padding: 13px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0b1120;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform .12s, opacity .2s;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); }
+  button:disabled { opacity: .55; cursor: wait; }
+  .status { margin-top: 22px; font-size: 14px; color: var(--muted); min-height: 20px; }
+  .status.error { color: var(--error); }
+  .spinner {
+    display: none;
+    width: 22px; height: 22px;
+    border: 3px solid rgba(148, 163, 184, .3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin-right: 8px;
+    vertical-align: -5px;
+  }
+  .spinner.on { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .result {
+    display: none;
+    margin-top: 24px;
+    padding: 20px 22px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-left: 4px solid var(--accent);
+    border-radius: 12px;
+    line-height: 1.65;
+    font-size: 15px;
+    white-space: pre-wrap;
+  }
+  .result.on { display: block; animation: fade .35s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+  .result-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  footer { margin-top: 26px; font-size: 12px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Краткое резюме страницы</h1>
+    <p class="subtitle">Введите URL — агент загрузит страницу и вернёт суть в 3–5 предложениях.</p>
+
+    <form id="form">
+      <input id="url" type="url" required placeholder="https://example.com" autocomplete="url">
+      <button id="btn" type="submit">Резюмировать</button>
+    </form>
+
+    <div class="status" id="status">
+      <span class="spinner" id="spinner"></span><span id="statusText"></span>
+    </div>
+
+    <section class="result" id="result">
+      <div class="result-label">Резюме</div>
+      <div id="summary"></div>
+    </section>
+
+    <footer>Агент «Краткое резюме страницы» · gpt-4o-mini · Jina Reader + fallback</footer>
+  </main>
+
+<script>
+const form = document.getElementById("form");
+const urlInput = document.getElementById("url");
+const btn = document.getElementById("btn");
+const spinner = document.getElementById("spinner");
+const statusText = document.getElementById("statusText");
+const statusEl = document.getElementById("status");
+const result = document.getElementById("result");
+const summary = document.getElementById("summary");
+
+function setStatus(text, isError) {
+  statusText.textContent = text;
+  statusEl.classList.toggle("error", !!isError);
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  btn.disabled = true;
+  spinner.classList.add("on");
+  setStatus("Загружаю страницу и формирую резюме…", false);
+  result.classList.remove("on");
+
+  try {
+    const resp = await fetch("/api/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: urlInput.value.trim() })
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      setStatus(data.error || "Неизвестная ошибка.", true);
+    } else {
+      setStatus("Готово.", false);
+      summary.textContent = data.summary;
+      result.classList.add("on");
+    }
+  } catch (err) {
+    setStatus("Сетевая ошибка: " + err.message, true);
+  } finally {
+    btn.disabled = false;
+    spinner.classList.remove("on");
+  }
+});
+</script>
+</body>
+</html>

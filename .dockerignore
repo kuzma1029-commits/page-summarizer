@@ -1,0 +1,16 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+logs/
+*.log
+.git/
+.idea/
+.vscode/
+deploy/
+README.md
+start_web.bat
+Dockerfile
+docker-compose.yml
+.dockerignore
